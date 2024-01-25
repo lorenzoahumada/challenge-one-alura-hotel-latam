@@ -6,6 +6,12 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
+
+import controller.HuespedController;
+import controller.ReservaController;
+import modelo.Huesped;
+import modelo.Reserva;
+
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.JButton;
@@ -13,9 +19,12 @@ import javax.swing.ImageIcon;
 import java.awt.Color;
 import java.awt.SystemColor;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+
 import java.awt.Font;
 import java.awt.event.ActionListener;
 import java.util.List;
+import java.util.Optional;
 import java.awt.event.ActionEvent;
 import javax.swing.JTabbedPane;
 import java.awt.Toolkit;
@@ -37,6 +46,8 @@ public class Busqueda extends JFrame {
 	private DefaultTableModel modeloHuesped;
 	private JLabel labelAtras;
 	private JLabel labelExit;
+	private ReservaController reservaController;
+	private HuespedController huespedController;
 	int xMouse, yMouse;
 
 	/**
@@ -90,7 +101,8 @@ public class Busqueda extends JFrame {
 		contentPane.add(panel);
 
 		
-		
+		reservaController = new ReservaController();
+		huespedController = new HuespedController();
 		
 		tbReservas = new JTable();
 		tbReservas.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -105,6 +117,7 @@ public class Busqueda extends JFrame {
 		panel.addTab("Reservas", new ImageIcon(Busqueda.class.getResource("/imagenes/reservado.png")), scroll_table, null);
 		scroll_table.setVisible(true);
 		
+		cargarTablaReservas(this.reservaController.listar());
 		
 		tbHuespedes = new JTable();
 		tbHuespedes.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -120,6 +133,8 @@ public class Busqueda extends JFrame {
 		JScrollPane scroll_tableHuespedes = new JScrollPane(tbHuespedes);
 		panel.addTab("Huéspedes", new ImageIcon(Busqueda.class.getResource("/imagenes/pessoas.png")), scroll_tableHuespedes, null);
 		scroll_tableHuespedes.setVisible(true);
+		
+		cargarTablaHuespedes(this.huespedController.listar());
 		
 		JLabel lblNewLabel_2 = new JLabel("");
 		lblNewLabel_2.setIcon(new ImageIcon(Busqueda.class.getResource("/imagenes/Ha-100px.png")));
@@ -216,7 +231,17 @@ public class Busqueda extends JFrame {
 		btnbuscar.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-
+				try{
+					Integer numeroReserva = Integer.parseInt(txtBuscar.getText());
+					panel.setSelectedComponent(scroll_table);
+					limpiarTabla(modelo);
+					cargarTablaReservas(reservaController.buscar(numeroReserva));
+				}catch(NumberFormatException e2) {
+					panel.setSelectedComponent(scroll_tableHuespedes);
+					String apellidoHuesped = txtBuscar.getText();
+					limpiarTabla(modeloHuesped);
+					cargarTablaHuespedes(huespedController.buscar(apellidoHuesped));
+				}
 			}
 		});
 		btnbuscar.setLayout(null);
@@ -233,6 +258,17 @@ public class Busqueda extends JFrame {
 		lblBuscar.setFont(new Font("Roboto", Font.PLAIN, 18));
 		
 		JPanel btnEditar = new JPanel();
+		btnEditar.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if(panel.getSelectedComponent() == scroll_table) {
+					editarReserva();
+				}
+				if(panel.getSelectedComponent() == scroll_tableHuespedes) {
+					editarHuesped();
+				}
+			}
+		});
 		btnEditar.setLayout(null);
 		btnEditar.setBackground(new Color(12, 138, 199));
 		btnEditar.setBounds(635, 508, 122, 35);
@@ -247,6 +283,23 @@ public class Busqueda extends JFrame {
 		btnEditar.add(lblEditar);
 		
 		JPanel btnEliminar = new JPanel();
+		btnEliminar.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if(panel.getSelectedComponent() == scroll_table) {
+					eliminarReserva();
+					limpiarTabla(modelo);
+					cargarTablaReservas(reservaController.listar());
+				}
+				if(panel.getSelectedComponent() == scroll_tableHuespedes) {
+					eliminarHuesped();
+					limpiarTabla(modeloHuesped);
+					limpiarTabla(modelo);
+					cargarTablaHuespedes(huespedController.listar());
+					cargarTablaReservas(reservaController.listar());
+				}
+			}
+		});
 		btnEliminar.setLayout(null);
 		btnEliminar.setBackground(new Color(12, 138, 199));
 		btnEliminar.setBounds(767, 508, 122, 35);
@@ -272,5 +325,103 @@ public class Busqueda extends JFrame {
 	        int x = evt.getXOnScreen();
 	        int y = evt.getYOnScreen();
 	        this.setLocation(x - xMouse, y - yMouse);
-}
+	    }
+	    
+	    private boolean tieneFilaElegida(JTable tabla) {
+	        return tabla.getSelectedRowCount() == 0 || tabla.getSelectedColumnCount() == 0;
+	    }
+	    
+	    private void eliminarReserva() {
+	        if (tieneFilaElegida(tbReservas)) {
+	            JOptionPane.showMessageDialog(this, "Por favor, elije un item");
+	            return;
+	        }
+
+	        Optional.ofNullable(modelo.getValueAt(tbReservas.getSelectedRow(), tbReservas.getSelectedColumn()))
+	                .ifPresentOrElse(fila -> {
+	                    Integer id = Integer.valueOf(modelo.getValueAt(tbReservas.getSelectedRow(), 0).toString());
+	                    int cantidadEliminada = this.reservaController.eliminar(id);
+	                    modelo.removeRow(tbReservas.getSelectedRow());
+
+	                    JOptionPane.showMessageDialog(this, cantidadEliminada + " item eliminado con exito!");
+	                }, () -> JOptionPane.showMessageDialog(this, "Por favor, elije un item"));
+	    }
+	    
+	    private void eliminarHuesped() {
+	        if (tieneFilaElegida(tbHuespedes)) {
+	            JOptionPane.showMessageDialog(this, "Por favor, elije un item");
+	            return;
+	        }
+
+	        Optional.ofNullable(modeloHuesped.getValueAt(tbHuespedes.getSelectedRow(), tbHuespedes.getSelectedColumn()))
+	                .ifPresentOrElse(fila -> {
+	                    Integer id = Integer.valueOf(modeloHuesped.getValueAt(tbHuespedes.getSelectedRow(), 0).toString());
+	                    Integer id_reserva = Integer.valueOf(modeloHuesped.getValueAt(tbHuespedes.getSelectedRow(), 6).toString());
+	                    int cantidadEliminada = this.huespedController.eliminar(id);
+	                    this.reservaController.eliminar(id_reserva);
+	                    modeloHuesped.removeRow(tbHuespedes.getSelectedRow());
+
+	                    JOptionPane.showMessageDialog(this, cantidadEliminada + " item eliminado con exito!");
+	                }, () -> JOptionPane.showMessageDialog(this, "Por favor, elije un item"));
+	    }
+	    
+	    private void editarReserva() {
+	        if (tieneFilaElegida(tbReservas)) {
+	            JOptionPane.showMessageDialog(this, "Por favor, elije un item");
+	            return;
+	        }
+
+	        Optional.ofNullable(modelo.getValueAt(tbReservas.getSelectedRow(), tbReservas.getSelectedColumn()))
+	                .ifPresentOrElse(fila -> {
+	                    Integer id = Integer.valueOf(modelo.getValueAt(tbReservas.getSelectedRow(), 0).toString());
+	                    String fechaEntrada = (String) modelo.getValueAt(tbReservas.getSelectedRow(), 1);
+	                    String fechaSalida = (String) modelo.getValueAt(tbReservas.getSelectedRow(), 2);
+	                    String valor = (String) modelo.getValueAt(tbReservas.getSelectedRow(), 3);
+	                    String formaPago = (String) modelo.getValueAt(tbReservas.getSelectedRow(), 4);
+
+	                    int cantidadModificada = this.reservaController.editar(id, fechaEntrada, fechaSalida, valor, formaPago);
+
+	                    JOptionPane.showMessageDialog(this, String.format("%d item modificado con éxito!", cantidadModificada));
+	                }, () -> JOptionPane.showMessageDialog(this, "Por favor, elije un item"));
+	    }
+	    
+	    private void editarHuesped() {
+	        if (tieneFilaElegida(tbHuespedes)) {
+	            JOptionPane.showMessageDialog(this, "Por favor, elije un item");
+	            return;
+	        }
+
+	        Optional.ofNullable(modeloHuesped.getValueAt(tbHuespedes.getSelectedRow(), tbHuespedes.getSelectedColumn()))
+	                .ifPresentOrElse(fila -> {
+	                    Integer id = Integer.valueOf(modeloHuesped.getValueAt(tbHuespedes.getSelectedRow(), 0).toString());
+	                    String nombre = (String) modeloHuesped.getValueAt(tbHuespedes.getSelectedRow(), 1);
+	                    String apellido = (String) modeloHuesped.getValueAt(tbHuespedes.getSelectedRow(), 2);
+	                    String nacionalidad = (String) modeloHuesped.getValueAt(tbHuespedes.getSelectedRow(), 3);
+	                    String fechaNacimiento = (String) modeloHuesped.getValueAt(tbHuespedes.getSelectedRow(), 4);
+	                    Integer telefono = Integer.valueOf(modeloHuesped.getValueAt(tbHuespedes.getSelectedRow(), 5).toString());
+	                    Integer id_reserva = Integer.valueOf(modeloHuesped.getValueAt(tbHuespedes.getSelectedRow(), 6).toString());
+
+	                    int cantidadModificada = this.huespedController.editar(id, nombre, apellido, nacionalidad, fechaNacimiento, telefono, id_reserva);
+
+	                    JOptionPane.showMessageDialog(this, String.format("%d item modificado con éxito!", cantidadModificada));
+	                }, () -> JOptionPane.showMessageDialog(this, "Por favor, elije un item"));
+	    }
+	    
+	    private void limpiarTabla(DefaultTableModel modelo) {
+	        modelo.getDataVector().clear();
+	    }
+	    
+	    //private void limpiarTablaHuespedes() {
+	        //modeloHuesped.getDataVector().clear();
+	    //}
+	    
+	    private void cargarTablaReservas(List<Reserva> reservas) {
+	    	reservas.forEach(reserva -> modelo.addRow(new Object[] { reserva.getId(), reserva.getFechaEntrada(),
+	        		reserva.getFechaSalida(), reserva.getValor(), reserva.getFormaPago() }));
+	    }
+	    
+	    private void cargarTablaHuespedes(List<Huesped> huespedes) {
+	        huespedes.forEach(huesped -> modeloHuesped.addRow(new Object[] { huesped.getId(), huesped.getNombre(),
+	        		huesped.getApellido(), huesped.getNacionalidad(), huesped.getFechaNacimiento(), huesped.getTelefono(), huesped.getIdReserva() }));
+	    }
 }

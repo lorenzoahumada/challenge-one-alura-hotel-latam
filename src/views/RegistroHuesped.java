@@ -7,6 +7,11 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.JTextField;
 import java.awt.Color;
 import com.toedter.calendar.JDateChooser;
+
+import controller.HuespedController;
+import modelo.Huesped;
+import modelo.Reserva;
+
 import javax.swing.JComboBox;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JLabel;
@@ -20,6 +25,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 import java.text.Format;
+import java.text.SimpleDateFormat;
 import java.awt.event.ActionEvent;
 import java.awt.Toolkit;
 import javax.swing.SwingConstants;
@@ -37,6 +43,7 @@ public class RegistroHuesped extends JFrame {
 	private JComboBox<Format> txtNacionalidad;
 	private JLabel labelExit;
 	private JLabel labelAtras;
+	private HuespedController huespedController;
 	int xMouse, yMouse;
 
 	/**
@@ -70,6 +77,8 @@ public class RegistroHuesped extends JFrame {
 		setLocationRelativeTo(null);
 		setUndecorated(true);
 		contentPane.setLayout(null);
+		
+		this.huespedController = new HuespedController();
 		
 		JPanel header = new JPanel();
 		header.setBounds(0, 0, 910, 36);
@@ -193,7 +202,7 @@ public class RegistroHuesped extends JFrame {
 		contentPane.add(txtTelefono);
 		
 		JLabel lblTitulo = new JLabel("REGISTRO HUÉSPED");
-		lblTitulo.setBounds(606, 55, 234, 42);
+		lblTitulo.setBounds(606, 55, 280, 42);
 		lblTitulo.setForeground(new Color(12, 138, 199));
 		lblTitulo.setFont(new Font("Roboto Black", Font.PLAIN, 23));
 		contentPane.add(lblTitulo);
@@ -253,6 +262,9 @@ public class RegistroHuesped extends JFrame {
 		btnguardar.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
+				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+				Huesped huesped = new Huesped(txtNombre.getText(), txtApellido.getText(), txtNacionalidad.getSelectedItem().toString(), dateFormat.format(txtFechaN.getDate()), txtTelefono.getText(), txtNreserva.getText());
+				huespedController.guardar(huesped);
 			}
 		});
 		btnguardar.setLayout(null);
